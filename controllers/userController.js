@@ -1,5 +1,6 @@
 import db from "../db.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 export const createUser = async (req, res) => {
   try {
@@ -117,5 +118,64 @@ export const updateUser = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "500 internal server error" });
+  }
+};
+
+export const login = async (req, res) => {
+  try {
+    const { user_name, password } = req.body;
+
+    if (!user_name || !password) {
+      return res
+        .status(400)
+        .json({ message: "Username and password is required" });
+    }
+
+    const get_user_query = `select u.user_name,u.password_hash,r.role_name, array_agg(distinct m.menu_name) as menus
+from users u
+join roles r on r.role_id = u.role_id
+join role_menus rm on rm.role_id = r.role_id
+join menus m on m.menu_id = rm.menu_id
+where u.user_name = $1 
+group by u.user_name,u.password_hash,r.role_name`;
+    const result = await db.query(get_user_query, [user_name]);
+
+    if (result?.rows?.length === 0) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isValidPassword = await bcrypt.compare(
+      password,
+      result?.rows?.[0]?.password_hash
+    );
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const user = result?.rows[0];
+
+    const payload = {
+      user_name: user.user_name,
+      role: user.role_name,
+    };
+
+    const token = jwt.sign(payload, process.env.SECRET_KEY, {
+      expiresIn: "1h",
+    });
+
+    const menus = result?.rows[0]?.menus;
+
+    res.status(200).json({
+      userDetails: {
+        user_name: user.user_name,
+        role: user.role_name,
+      },
+      menus,
+      token,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "500 internal server error", error });
   }
 };
