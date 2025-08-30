@@ -2,16 +2,22 @@ import db from "../db.js";
 
 export const createCatgeory = async (req, res) => {
   try {
+    // console.log(req);
     const { category_name } = req.body;
+
+    const category_image = req.file ? req.file.path : null;
 
     if (!category_name) {
       return res.status(400).json({ message: "Category name is required" });
     }
 
     const insert_query =
-      "INSERT INTO category(category_name) VALUES ($1) RETURNING *";
+      "INSERT INTO category(category_name, category_image) VALUES ($1, $2) RETURNING *";
 
-    const result = await db.query(insert_query, [category_name]);
+    const result = await db.query(insert_query, [
+      category_name,
+      category_image,
+    ]);
 
     res.status(200).json({
       message: "Category created successfully",
