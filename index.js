@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/userRoutes.js";
 import roleRoutes from "./routes/rolesRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
+import artistRoutes from "./routes/artistRoutes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use("/user", authRoutes);
 app.use("/role", roleRoutes);
 app.use("/category", categoryRoutes);
+app.use("/artist", artistRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.listen(process.env.PORT || 4000, () => {

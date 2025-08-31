@@ -25,7 +25,13 @@ export const createCatgeory = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "500 internal server error", error });
+    if (error.code === "23505") {
+      return res
+        .status(500)
+        .json({ message: "Only unique categories allowed" });
+    } else {
+      res.status(500).json({ message: "500 internal server error", error });
+    }
   }
 };
 

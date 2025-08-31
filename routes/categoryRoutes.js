@@ -1,5 +1,5 @@
 import express from "express";
-import { upload } from "../multer.js";
+import { uploadCategories } from "../multer.js";
 import {
   createCatgeory,
   getCategory,
@@ -9,12 +9,16 @@ import {
 
 const router = express.Router();
 
-router.post("/createCategory", upload.single("category_image"), createCatgeory);
+router.post(
+  "/createCategory",
+  uploadCategories.single("category_image"),
+  createCatgeory
+);
 router.get("/getCategory", getCategory);
 router.post("/getCategoryById", getCategoryById);
 router.patch(
   "/updateCategory",
-  upload.single("category_image"),
+  uploadCategories.single("category_image"),
   updateCategory
 );
 
