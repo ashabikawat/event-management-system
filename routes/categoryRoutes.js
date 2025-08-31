@@ -1,5 +1,5 @@
 import express from "express";
-import multer from "multer";
+import { upload } from "../multer.js";
 import {
   createCatgeory,
   getCategory,
@@ -9,22 +9,13 @@ import {
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    return cb(null, "./uploads/");
-  },
-  filename: function (req, file, cb) {
-    return cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-
-const upload = multer({
-  storage,
-});
-
 router.post("/createCategory", upload.single("category_image"), createCatgeory);
 router.get("/getCategory", getCategory);
 router.post("/getCategoryById", getCategoryById);
-router.patch("/updateCategory", updateCategory);
+router.patch(
+  "/updateCategory",
+  upload.single("category_image"),
+  updateCategory
+);
 
 export default router;

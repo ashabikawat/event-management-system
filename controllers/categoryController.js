@@ -67,18 +67,29 @@ export const getCategoryById = async (req, res) => {
 
 export const updateCategory = async (req, res) => {
   try {
+    // console.log(req);
+
     const { category_id, category_name } = req.body;
 
-    if (!category_id || !category_name) {
+    const category_image = req.file ? req.file.path : null;
+
+    if (!category_id) {
+      return res.status(400).json({ message: "Category id is required" });
+    }
+    if (!category_name) {
       return res
         .status(400)
-        .json({ message: "Category id and name is required" });
+        .json({ message: "Category name or image is required" });
     }
 
     const update_query =
-      "UPDATE category SET category_name = $1 WHERE category_id =$2 RETURNING *";
+      "UPDATE category SET category_name = $1, category_image =  $3 WHERE category_id =$2 RETURNING *";
 
-    const result = await db.query(update_query, [category_name, category_id]);
+    const result = await db.query(update_query, [
+      category_name,
+      category_id,
+      category_image,
+    ]);
     return res.status(200).json({
       message: "Category updated successfully",
       category: result.rows,
