@@ -1,9 +1,27 @@
 import express from "express";
-import { uploadArtist } from "../multer.js";
-import { createArtist } from "../controllers/artistController.js";
+import { handleMulterErrors, uploadArtist } from "../multer.js";
+import {
+  createArtist,
+  getArtist,
+  getArtistById,
+  updateArtist,
+} from "../controllers/artistController.js";
 
 const router = express.Router();
 
-router.post("/createArtist", uploadArtist.array("artist_image"), createArtist);
+router.post(
+  "/createArtist",
+  uploadArtist.array("artist_image"),
+  handleMulterErrors,
+  createArtist
+);
+router.get("/getArtist", getArtist);
+router.get("/getArtistById", getArtistById);
+router.patch(
+  "/updateArtist",
+  uploadArtist.array("artist_image"),
+  handleMulterErrors,
+  updateArtist
+);
 
 export default router;

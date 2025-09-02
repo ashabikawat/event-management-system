@@ -17,3 +17,15 @@ function makeFolder(folder) {
 
 export const uploadCategories = multer({ storage: makeFolder("categories") });
 export const uploadArtist = multer({ storage: makeFolder("artists") });
+
+export const handleMulterErrors = (err, req, res, next) => {
+  if (err) {
+    if (err instanceof multer.MulterError) {
+      switch (err.code) {
+        case "LIMIT_UNEXPECTED_FILE":
+          return res.status(500).json({ message: "Unexpected field" });
+      }
+    }
+    next();
+  }
+};
