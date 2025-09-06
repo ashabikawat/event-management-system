@@ -131,7 +131,8 @@ export const login = async (req, res) => {
         .json({ message: "Username and password is required" });
     }
 
-    const get_user_query = `select u.user_name,u.password_hash,r.role_name, array_agg(distinct m.menu_name) as menus
+    const get_user_query = `select u.user_name,u.password_hash,r.role_name, 
+    json_agg(  json_build_object('name', m.menu_name, 'icon',m.menu_icon , 'path',m.menu_path)) as menus
 from users u
 join roles r on r.role_id = u.role_id
 join role_menus rm on rm.role_id = r.role_id
@@ -150,7 +151,9 @@ group by u.user_name,u.password_hash,r.role_name`;
     );
 
     if (!isValidPassword) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res
+        .status(401)
+        .json({ status: 400, message: "Invalid credentials" });
     }
 
     const user = result?.rows[0];
@@ -167,6 +170,7 @@ group by u.user_name,u.password_hash,r.role_name`;
     const menus = result?.rows[0]?.menus;
 
     res.status(200).json({
+      status: 200,
       userDetails: {
         user_name: user.user_name,
         role: user.role_name,
@@ -176,6 +180,8 @@ group by u.user_name,u.password_hash,r.role_name`;
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "500 internal server error", error });
+    res
+      .status(500)
+      .json({ status: 400, message: "500 internal server error", error });
   }
 };
