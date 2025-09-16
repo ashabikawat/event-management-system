@@ -98,30 +98,40 @@ export const getAllUsers = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   try {
+    console.log("req.body.mob", req.body.mob);
+    if (!req.body.user_id) {
+      return res
+        .status(400)
+        .json({ status: 400, message: "User id is required" });
+    }
+
+    console.log(req.body);
     let updates = [];
     let values = [];
 
     let idx = 1;
 
-    if (req.body.name) {
+    if ("name" in req.body) {
       updates.push(`name = $${idx++}`);
       values.push(req.body.name);
     }
-    if (req.body.email) {
+    if ("email" in req.body) {
       updates.push(`email = $${idx++}`);
       values.push(req.body.email);
     }
-    if (req.body.mob) {
+    if ("mob" in req.body) {
       updates.push(`mob_no = $${idx++}`);
       values.push(req.body.mob);
     }
-    if (req.body.role_id) {
+    if ("role_id" in req.body) {
       updates.push(`role_id = $${idx++}`);
       values.push(req.body.role_id);
     }
 
     if (req.body.user_name) {
-      return res.status(400).json({ message: "User name cannot edited" });
+      return res
+        .status(400)
+        .json({ status: 400, message: "User name cannot edited" });
     }
 
     values.push(req.body.user_id);
@@ -137,12 +147,25 @@ export const updateUser = async (req, res) => {
 
     const result = await db.query(update_query, values);
 
-    res
-      .status(200)
-      .json({ message: "User updated successfully", user: result.rows[0] });
+    res.status(200).json({
+      status: 200,
+      message: "User updated successfully",
+      user: result.rows[0],
+    });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "500 internal server error" });
+    if (error.code === "23505") {
+      if (error.constraint === "users_mob_no_key") {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Mobile number already exists" });
+      } else if (error.constraint === "users_email_key") {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Email id already exists" });
+      }
+    }
+    res.status(500).json({ status: 500, message: "500 internal server error" });
   }
 };
 
