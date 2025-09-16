@@ -7,9 +7,10 @@ export const createUser = async (req, res) => {
     const { user_name, password, name, email, mob, role_id } = req.body;
 
     if (!user_name || !password || !name || !role_id) {
-      return res
-        .status(400)
-        .json({ message: "Username, password, name and role is required" });
+      return res.status(400).json({
+        status: 400,
+        message: "Username, password, name and role is required",
+      });
     }
 
     const saltRounds = 10;
@@ -27,12 +28,35 @@ export const createUser = async (req, res) => {
       role_id,
     ]);
 
-    res
-      .status(200)
-      .json({ message: "User created successfully", user: result.rows[0] });
+    res.status(200).json({
+      status: 200,
+      message: "User created successfully",
+      user: result.rows[0],
+    });
   } catch (error) {
-    // console.log(error);
-    res.status(500).json({ message: "Username already exists" });
+    console.log(error);
+
+    if (error.code === "23505") {
+      if (error.constraint === "users_user_name_key") {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Username already exists" });
+      } else if (error.constraint === "users_email_key") {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Email id already exists" });
+      }
+    }
+
+    if (error.code === "23514") {
+      if (error.constraint === "users_mob_no_check") {
+        return res.status(400).json({
+          status: 400,
+          message: "Phone number must be 10 digits",
+        });
+      }
+    }
+    res.status(500).json({ status: 500, message: "Something went wrong" });
   }
 };
 
@@ -58,7 +82,8 @@ export const getUserById = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const get_query = "SELECT * FROM users";
+    const get_query =
+      "SELECT user_id, user_name, name, email, mob_no,created_date,role_name FROM users u left join roles r on u.role_id = r.role_id";
 
     const result = await db.query(get_query);
 

@@ -1,23 +1,51 @@
 import db from "../db.js";
 
 export const createRole = async (req, res) => {
-  try {
-    const { role_name } = req.body;
+  const client = await db.connect();
 
-    if (!role_name) {
-      return res.status(400).json({ message: "Role name is required" });
+  try {
+    const { role_name, menus } = req.body;
+
+    if (!role_name || !Array.isArray(menus)) {
+      return res
+        .status(400)
+        .json({ message: "Role name and menus is required" });
     }
+
+    await client.query("BEGIN");
 
     const insert_query = "INSERT INTO roles(role_name) VALUES ($1) RETURNING *";
 
-    const result = await db.query(insert_query, [role_name]);
+    const result = await client.query(insert_query, [role_name]);
 
+    const roleId = result.rows[0].role_id;
+
+    for (const menusId of menus) {
+      await client.query(
+        "INSERT INTO role_menus(role_id,menu_id) values ($1,$2)",
+        [roleId, menusId]
+      );
+    }
+
+    await client.query("COMMIT");
     res.status(200).json({
+      status: 200,
       message: "Role created successfully",
       role: result.rows[0],
     });
   } catch (error) {
-    res.status(500).json({ message: "500 internal server error", error });
+    console.log(error);
+    await client.query("ROLLBACK");
+    if (error.code === "23505") {
+      if (error.constraint === "roles_role_name_key") {
+        res
+          .status(400)
+          .json({ status: 400, message: "Role name already exists" });
+      }
+    }
+    res.status(500).json({ status: 500, message: "Something went wrong" });
+  } finally {
+    client.release();
   }
 };
 
@@ -43,7 +71,8 @@ export const getRole = async (req, res) => {
 
 export const getAllRoles = async (req, res) => {
   try {
-    const get_all_roles = "SELECT * FROM roles";
+    const get_all_roles =
+      "select r.role_id, role_name, array_agg(menu_name)  as menus from roles r left join role_menus rm on rm.role_id = r.role_id left join menus m on m.menu_id = rm.menu_id group by r.role_id order by r.role_id asc ";
 
     const result = await db.query(get_all_roles);
 
@@ -67,6 +96,20 @@ export const updateRole = async (req, res) => {
     res
       .status(200)
       .json({ message: "Role updated successfully", role: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ message: "500 internal server error", error });
+  }
+};
+
+export const getMenus = async (req, res) => {
+  try {
+    const getMenus = "SELECT * FROM menus";
+
+    const result = await db.query(getMenus);
+
+    res
+      .status(200)
+      .json({ message: "Menus fetched successfully", menus: result.rows });
   } catch (error) {
     res.status(500).json({ message: "500 internal server error", error });
   }
