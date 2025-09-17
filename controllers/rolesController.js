@@ -51,20 +51,21 @@ export const createRole = async (req, res) => {
 
 export const getRole = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { role_id } = req.body;
 
-    if (!id) {
-      return res.status(400).json({ message: "Id is required" });
+    if (!role_id) {
+      return res.status(400).json({ message: "Role id is required" });
     }
 
-    const get_by_id_query = "SELECT * FROM roles WHERE role_id = $1 ";
-
-    const result = await db.query(get_by_id_query, [id]);
+    const get_by_id_query =
+      "select r.role_id, role_name, array_agg(menu_name)  as menus,  array_agg(m.menu_id) as menu_ids from roles r left join role_menus rm on rm.role_id = r.role_id left join menus m on m.menu_id = rm.menu_id where r.role_id = $1 group by r.role_id  ";
+    const result = await db.query(get_by_id_query, [role_id]);
 
     res
       .status(200)
       .json({ message: "Role fetched successfully", role: result.rows[0] });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "500 internal server error", error });
   }
 };
@@ -85,19 +86,47 @@ export const getAllRoles = async (req, res) => {
 };
 
 export const updateRole = async (req, res) => {
+  const { role_id, role_name, menus } = req.body;
+
+  if (!role_id) {
+    return res
+      .status(400)
+      .json({ status: 400, message: "Role id is required" });
+  }
+
   try {
-    const { role_id, role_name } = req.body;
+    await db.query("BEGIN");
 
-    const update_query =
-      "UPDATE roles SET role_name = $1 WHERE role_id = $2 RETURNING *";
+    if (role_name) {
+      await db.query(`UPDATE roles SET role_name = $1 WHERE role_id = $2`, [
+        role_name,
+        role_id,
+      ]);
+    }
 
-    const result = await db.query(update_query, [role_name, role_id]);
+    if (Array.isArray(menus)) {
+      const cleanedMenus = menus.filter((m) => m);
 
-    res
-      .status(200)
-      .json({ message: "Role updated successfully", role: result.rows[0] });
+      await db.query(`DELETE FROM role_menus WHERE role_id = $1`, [role_id]);
+
+      for (const menuId of cleanedMenus) {
+        await db.query(
+          `INSERT INTO role_menus(role_id, menu_id) VALUES ($1, $2)`,
+          [role_id, menuId]
+        );
+      }
+    }
+
+    await db.query("COMMIT");
+
+    res.status(200).json({
+      status: 200,
+      message: "Role updated successfully",
+    });
   } catch (error) {
-    res.status(500).json({ message: "500 internal server error", error });
+    await db.query("ROLLBACK");
+    console.error(error);
+    res.status(500).json({ status: 500, message: "Internal server error" });
   }
 };
 
