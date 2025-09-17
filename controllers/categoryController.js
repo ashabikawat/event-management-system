@@ -3,7 +3,7 @@ import db from "../db.js";
 export const createCatgeory = async (req, res) => {
   try {
     // console.log(req);
-    const { category_name } = req.body;
+    const { category_name, category_description } = req.body;
 
     const category_image = req.file ? req.file.path : null;
 
@@ -12,14 +12,16 @@ export const createCatgeory = async (req, res) => {
     }
 
     const insert_query =
-      "INSERT INTO category(category_name, category_image) VALUES ($1, $2) RETURNING *";
+      "INSERT INTO category(category_name, category_image, category_description) VALUES ($1, $2,$3) RETURNING *";
 
     const result = await db.query(insert_query, [
       category_name,
       category_image,
+      category_description,
     ]);
 
     res.status(200).json({
+      status: 200,
       message: "Category created successfully",
       category: result.rows,
     });
@@ -27,10 +29,12 @@ export const createCatgeory = async (req, res) => {
     console.log(error);
     if (error.code === "23505") {
       return res
-        .status(500)
-        .json({ message: "Only unique categories allowed" });
+        .status(400)
+        .json({ status: 400, message: "Only unique categories allowed" });
     } else {
-      res.status(500).json({ message: "500 internal server error", error });
+      res
+        .status(500)
+        .json({ status: 500, message: "500 internal server error", error });
     }
   }
 };
