@@ -17,6 +17,7 @@ function makeFolder(folder) {
 
 export const uploadCategories = multer({ storage: makeFolder("categories") });
 export const uploadArtist = multer({ storage: makeFolder("artists") });
+export const uploadVenue = multer({ storage: makeFolder("venue") });
 
 export const handleMulterErrors = (err, req, res, next) => {
   if (err) {
