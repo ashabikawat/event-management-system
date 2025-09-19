@@ -16,7 +16,7 @@ router.post(
   createArtist
 );
 router.get("/getArtist", getArtist);
-router.get("/getArtistById", getArtistById);
+router.post("/getArtistById", getArtistById);
 router.patch(
   "/updateArtist",
   uploadArtist.array("artist_image"),

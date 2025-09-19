@@ -40,9 +40,11 @@ export const getArtist = async (req, res) => {
 
     const result = await db.query(get_query);
 
-    return res
-      .status(200)
-      .json({ message: "Artist fetched successfully", artists: result.rows });
+    return res.status(200).json({
+      status: 200,
+      message: "Artist fetched successfully",
+      artists: result.rows,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal server error", error });
@@ -67,9 +69,30 @@ export const getArtistById = async (req, res) => {
         .json({ message: "No artist found with the given id" });
     }
 
-    return res
-      .status(200)
-      .json({ message: "Artist fetched successfully", artist: result.rows[0] });
+    const artist = result.rows[0];
+
+    const parseImages = (val) => {
+      if (!val) return [];
+
+      if (Array.isArray(val)) {
+        // already parsed by pg driver
+        return val.filter((s) => s && s.trim() !== "");
+      }
+
+      // string case
+      return val
+        .replace(/[{}]/g, "")
+        .split(",")
+        .map((s) => s.replace(/\\/g, "/").replace(/"/g, "").trim())
+        .filter((s) => s !== "");
+    };
+
+    artist.artist_image = parseImages(artist.artist_image);
+
+    return res.status(200).json({
+      message: "Artist fetched successfully",
+      artist,
+    });
   } catch (error) {
     console.log(error);
     if (error.code === "22P02") {
@@ -81,7 +104,7 @@ export const getArtistById = async (req, res) => {
 
 export const updateArtist = async (req, res) => {
   try {
-    const { artist_id, artist_name } = req.body;
+    const { artist_id, artist_name, artist_description } = req.body;
 
     const artist_image = req.files ? req.files.map((m) => m.path) : null;
 
@@ -90,19 +113,24 @@ export const updateArtist = async (req, res) => {
     }
 
     const update_query =
-      "UPDATE artist SET artist_name = $1, artist_image = $2 WHERE artist_id =$3 RETURNING *";
+      "UPDATE artist SET artist_name = $1, artist_image = $2, artist_description= $3 WHERE artist_id =$4 RETURNING *";
 
     const result = await db.query(update_query, [
       artist_name,
       artist_image,
+      artist_description,
       artist_id,
     ]);
 
-    return res
-      .status(200)
-      .json({ message: "Artist updated successfully", artist: result.rows[0] });
+    return res.status(200).json({
+      status: 200,
+      message: "Artist updated successfully",
+      artist: result.rows[0],
+    });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Internal server error", error });
+    res
+      .status(500)
+      .json({ status: 500, message: "Internal server error", error });
   }
 };
